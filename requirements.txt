@@ -1,0 +1,11 @@
+numpy
+langchain
+langchain-community
+litellm
+faiss-cpu
+pdfminer.six
+sentence-transformers
+openai
+tqdm
+pypdf
+
