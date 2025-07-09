@@ -8,12 +8,14 @@ except ImportError:
 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatLiteLLM  # Wrapper für LiteLLM
-import litellm
-from langchain.llms import OpenAI
+from langchain_community.chat_models import ChatLiteLLM  # Wrapper für LiteLLM
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+openai_api_key = os.getenv("OPENAI_API_KEY")
 
 PDF_PATH = Path("BGB.pdf")
 INDEX_DIR = Path("data/faiss_langchain")
@@ -30,7 +32,7 @@ def build_or_load_vectorstore() -> FAISS:
     # if faiss-index exists it gets loaded, if not it will be created
     if (INDEX_DIR / "index.faiss").exists():
         print("Lade bestehenden FAISS-Index …")
-        vectorstore = FAISS.load_local(str(INDEX_DIR), embeddings)
+        vectorstore = FAISS.load_local(str(INDEX_DIR), embeddings, allow_dangerous_deserialization=True)
     else:
         if not PDF_PATH.exists():
             raise FileNotFoundError(f"PDF nicht gefunden: {PDF_PATH}")
@@ -53,10 +55,11 @@ def build_or_load_vectorstore() -> FAISS:
 
 def answer_question(question: str, vectorstore: FAISS) -> str:
     """answers a prompt question, when OpenAI-ApiKey is given, otherwise just gives top_k vectors"""
-    if openai and os.getenv("OPENAI_API_KEY"):
+    if openai and openai_api_key:
         llm = ChatLiteLLM(
             model="gpt-4o-2024-11-20",
-            temperature=0.0
+            temperature=0.0,
+            api_key=openai_api_key
         )
         qa_chain = RetrievalQA.from_chain_type(
             llm=llm,

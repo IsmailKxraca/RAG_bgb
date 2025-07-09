@@ -1,11 +1,11 @@
 numpy
-langchain
-langchain-community
+langchain~=0.3.26
+langchain-community~=0.3.27
 litellm
 faiss-cpu
 pdfminer.six
 sentence-transformers
-openai
+openai~=1.93.3
 tqdm
 pypdf
-
+python-dotenv~=1.1.1
