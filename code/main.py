@@ -12,6 +12,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 from langchain_community.chat_models import ChatLiteLLM  # Wrapper für LiteLLM
+from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -23,6 +24,13 @@ EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 TOP_K = 5
+
+prompt= ChatPromptTemplate.from_messages([
+    ("system", "Du bist ein juristischer Assistent, welcher die Fragen des Users anhand des gegebenen Kontextes ausgibt."
+               "Beantworte die Fragen ausschließlich mit dem Wissen aus dem Kontext. Wenn du die Antwort daraus nicht "
+               "extrahieren kannst antworte: Ich weiß es nicht."),
+    ("human",  "Kontext:\n{context}\n\nFrage:{question}")
+])
 
 
 def build_or_load_vectorstore() -> FAISS:
@@ -65,8 +73,10 @@ def answer_question(question: str, vectorstore: FAISS) -> str:
             llm=llm,
             chain_type="stuff",
             retriever=vectorstore.as_retriever(search_kwargs={"k": TOP_K}),
+            chain_type_kwargs={"prompt": prompt},
+            verbose=True,
         )
-        return qa_chain.run(question)
+        return qa_chain.run({'query':str(question)})
     else:
         print(f"Kein OpenAI-API-Key vorhanden, gebe die top {TOP_K} Vektoren zurück. ")
         docs = vectorstore.similarity_search(question, k=TOP_K)
@@ -88,7 +98,7 @@ def main() -> None:
         if not question:
             continue
         answer = answer_question(question, vectorstore)
-        print("\nAntwort:\n" + answer + "\n")
+        print(f"\nAntwort:\n{answer}\n")
 
 
 if __name__ == "__main__":
